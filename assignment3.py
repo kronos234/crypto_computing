@@ -16,18 +16,18 @@ T =     [ [1,0,0,0,0,0,0,0], #O-
         ]
 
 def build_input(b_2,b_1,b_0):
-    #add conditions for x_A,...
-    if  ((b_1 = 1)and (b_0 = 1)) or((b_2=1)and(b_1=1)and(b_0=1)):#xA is 1 if the group is A or AB and 0 otherwise
+    #xA is 1 if the group is A or AB and 0 otherwise
+    if  ((b_1 == 1)and (b_0 == 1)) or((b_2==1)and(b_1==1)and(b_0==1)):
         b_A = 1
     else:
         b_A = 0
-
-    if ((b_2=1)and(b_0=1)) or ((b_2=1)and(b_1=1)and(b_0=1)): #xB is 1 if the group is B or AB and 0 otherwise
+    #xB is 1 if the group is B or AB and 0 otherwise
+    if ((b_2==1)and(b_0==1)) or ((b_2==1)and(b_1==1)and(b_0==1)):
         b_B=1
     else:
         b_B =0
     #bit xR is 1 if the Rh is + and 0 otherwise.
-    if ((b_2=0)and(b_1=0)and(b_0=1)) or ((b_2=0)and(b_1=1)and(b_0=1)) or ((b_2=1)and(b_1=0)and(b_0=1)) or ((b_2=1)and(b_1=1)and(b_0=1)):
+    if ((b_2==0)and(b_1==0)and(b_0==1)) or ((b_2==0)and(b_1==1)and(b_0==1)) or ((b_2==1)and(b_1==0)and(b_0==1)) or ((b_2==1)and(b_1==1)and(b_0==1)):
         b_R = 1
     else:
         b_R = 0
@@ -40,58 +40,44 @@ class Alice:
         self.n = n
         #Note that u_B,v_B,w_B here are arrays of length 5
         self.triple = D.TripleA()
-        self.u_A = self.triple[0]
-        self.v_A = self.triple[1]
-        self.w_A = self.triple[2]
+        self.u = self.triple[0]
+        self.v = self.triple[1]
+        self.w = self.triple[2]
         self.input = x
         self.out = None
+        self.G1 = None
+        self.G2 = None
+        self.G3 = None
+        self.G4 = None
+        self.G5 = None
+        self.inputB = None
 
     def share_input(self):
+        self.inputA = random.getrandbits(self.n)
+        return self.inputA^self.input
 
-    def xor(self):
-
-    def and(self):
-
-    def mult_by_const(self):
-
-    def add_by_const(self):
-
-    def send(self):
-
-    def receive(self, msg):
-
-    def output(self):
-        return self.out
 
 class Bob:
     def __init__(self,n,y,D):
         self.n = n
         #Note that u_B,v_B,w_B here are arrays of length 5
         self.triple = D.TripleB()
-        self.u_B = self.triple[0]
-        self.v_B = self.triple[1]
-        self.w_B = self.triple[2]
+        self.u = self.triple[0]
+        self.v = self.triple[1]
+        self.w = self.triple[2]
         self.input = y
         self.out = None
+        self.G1 = None
+        self.G2 = None
+        self.G3 = None
+        self.G4 = None
+        self.G5 = None
+        self.inputA = None
+
 
     def share_input(self):
-        self.inputy_B = random.getrandbits(self.n)
-        self.inputy_A = self.inputy_B^self.input
-
-    def xor(self):
-
-    def and(self):
-
-    def mult_by_const(self):
-
-    def add_by_const(self):
-
-    def send(self):
-        return [self.v,self.z_B]
-
-    def receive(self,msg):
-
-    def output(self):
+        self.inputB = random.getrandbits(self.n)
+        return self.inputB^self.input
 
 
 
@@ -102,18 +88,22 @@ class Dealer: # generates random beaver triples
         self.u = [0 for i in range(5)]
         self.v = [0 for i in range(5)]
         self.w = [0 for i in range(5)]
+        #Alice's shares
+        self.u_A = [0 for i in range(5)]
+        self.v_A = [0 for i in range(5)]
+        self.w_A = [0 for i in range(5)]
+        #Bob's shares
+        self.u_B = [0 for i in range(5)]
+        self.v_B = [0 for i in range(5)]
+        self.w_B = [0 for i in range(5)]
 
-    def generate_triple(self):
-        #for loop for number of and gates in the formula:
         for i in range(5):
             self.u[i] = random.getrandbits(self.n) #get random u
             self.v[i] = random.getrandbits(self.n) #get random v
-            self.w[i] = u&v
-
-    def share_triple(self):
+            self.w[i] = self.u[i]&self.v[i]
         for i in range(5):
             self.u_A[i] = random.getrandbits(self.n)
-            self.u_B[i] = u^self.u_A[i]
+            self.u_B[i] = self.u[i]^self.u_A[i]
             self.v_A[i] = random.getrandbits(self.n)
             self.v_B[i] = v^self.v_A[i]
             self.w_A[i] = random.getrandbits(self.n)
@@ -124,6 +114,14 @@ class Dealer: # generates random beaver triples
 
     def TripleB(self):
         return [self.u_B,self.v_B,self.w_B]
+
+
+#input sharing function
+def input_sharing(A,B):
+    A.inputB =  B.share_input()#Alice's share of Bob's input
+    B.inputA =  A.share_input()#Bob's share of Alice's input
+
+
 
 
 
@@ -145,12 +143,15 @@ if __name__ == '__main__':
                             A = Alice(n,input_x,D) #beaver triples created for Alice
                             B = Bob(n,input_y,D)   #beaver triples created for Alice
                             #Sharing input
-                            B.receive(A.send(A.share_input())) #Alice shares her input
-                            A.receive(B.send(B.share_input())) #Bob shares his input
-
-
-
-
-            B.receive(A.send()) #Bob receives first message from Alice
-            A.receive(B.send()) #Alice receives second round message from Bob
-            print("Compatibility of: ", x, " and ", y, " is ", A.output()) #Alice computes output
+                            input_sharing(A,B)
+                            #Computing first layer of and gates:  G1 = x_A&(1^y_A) ; G2 = x_B&(1^y_B) and G3 = x_R&(1^y_R)
+                            #level1(A,B)
+                            #Computing second layer of and gates: G4 = (1^(G1))&(1^G2)
+                            #level2(A,B)
+                            #Computing third layer of and gates: G5 = G4 &(1^G3)
+                            #level3(A,B)
+                            #print output
+                            print(A.inputB)
+                            print(A.inputA)
+                            print(B.inputA)
+                            print(B.inputB)
