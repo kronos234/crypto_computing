@@ -1,2 +1,2 @@
 #Author: Mahak Pancholi
-Run command: python3 assignment2.py
+Run command: python3 assignment3.py
