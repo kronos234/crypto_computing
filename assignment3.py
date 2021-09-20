@@ -29,11 +29,11 @@ class Dealer: # generates random beaver triples
         self.u = [random.getrandbits(1) for _ in range(5)]
         self.v = [random.getrandbits(1) for _ in range(5)]
         self.w = [0 for i in range(5)]
-        #Alice's shares
+        #Alice's triple shares
         self.u_A = [random.getrandbits(1) for _ in range(5)]
         self.v_A = [random.getrandbits(1) for _ in range(5)]
         self.w_A = [random.getrandbits(1) for _ in range(5)]
-        #Bob's shares
+        #Bob's triple shares
         self.u_B = [0 for i in range(5)]
         self.v_B = [0 for i in range(5)]
         self.w_B = [0 for i in range(5)]
@@ -46,10 +46,10 @@ class Dealer: # generates random beaver triples
             self.v_B[i] = self.v[i]^self.v_A[i]
             self.w_B[i] = self.w[i]^self.w_A[i]
 
-    def TripleA(self):
+    def TripleA(self): #return ALice's triple share
         return [self.u_A,self.v_A,self.w_A]
 
-    def TripleB(self):
+    def TripleB(self):#return Bob's triple share
         return [self.u_B,self.v_B,self.w_B]
 
 class Alice:
@@ -61,14 +61,15 @@ class Alice:
         self.v = self.triple[1]
         self.w = self.triple[2]
         self.input = x
+        # No. of gates in the circuit are 17 (including input and xor gates)
         self.G = [0 for i in range(17)]
         for j in ABR:
             self.G[j] = random.getrandbits(1)
 
-    def share_input(self):
+    def share_input(self): #share inputs with Bob
         return [self.input[j]^self.G[j] for j in ABR]
 
-    def and_gate(self,val1,val2,index):
+    def and_gate(self,val1,val2,index): #compute share of d, e
         i = get_gate_index(index)
         return [val1^self.u[i], val2^self.v[i]]
 
@@ -92,7 +93,7 @@ class Bob:
         i = get_gate_index(index)
         return [val1^self.u[i], val2^self.v[i]]
 
-
+#This function generates input shares for both Alice and Bob
 def input_sharing(A,B):
     B.G[0],B.G[1],B.G[2] = A.share_input()
     A.G[3],A.G[4],A.G[5] = B.share_input()
@@ -135,21 +136,23 @@ if __name__ == '__main__':
     #formula: (1^(x_A&(1^y_A)))&(1^(x_B&(1^y_B)))&(1^(x_R&(1^y_R)))
     test_x = [[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]]
     test_y = [[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]]
+    print("Alice's input, Bob's input, Compatibility output")
     for x in test_x:
         for y in test_y:
             D = Dealer(n)
             A = Alice(x,D)
             B = Bob(y,D)
-            #sharing inputs
-            input_sharing(A,B)
             #wires as follow: (G[0]=x_A,G[1]=x_B,G[2]=x_R,G[3]=y_A,G[4]=y_B,G[5]=y_R,
             #G[6]=xor(1,G[3]),G[7]=xor(1^y_B),G[8]=xor(1^y_R),G[9]=and(G[0],G[6]),
             # G[10] = and(G[1],G[7]), G[11] = and(G[2],G[8]), G[12] = xor(1,G[9]),
             #G[13] = xor(1,G[10]), G[14] = and(G[12],G[13]), G[15] = xor(1,G[11]),
             #G[16] = and(G[14],G[15]).
-            #Computing layer 1 of the circuit: gates G1 = G0 = x_A&(1^y_A) ; G1 = x_B&(1^y_B) and G2 = x_R&(1^y_R)
+            #sharing inputs: i.e shares og gates G0,G1...G5
+            input_sharing(A,B)
+            #Computing layer 1 of the circuit: gates G6,...G11
             layer1(A,B)
-            #layer 2:
-            layer2(A,B) #G3 = (1^G0)&(1^G1)
-            layer3(A,B) #G4 = G3&(1^G2)
-            print(output(A,B), (1^(x[0]&(1^y[0])))&(1^(x[1]&(1^y[1])))&(1^(x[2]&(1^y[2]))))
+            #layer 2: gates G12...G14
+            layer2(A,B)
+            #layer 3: gates G15,G16
+            layer3(A,B)
+            print(x,y,output(A,B))
